@@ -1,17 +1,16 @@
-FROM node:20-alpine AS base
+FROM oven/bun:1-alpine AS base
+WORKDIR /app
 
 FROM base AS deps
-WORKDIR /app
-COPY package.json yarn.lock .yarnrc.yml ./
-RUN corepack enable && yarn install --immutable
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
 FROM base AS builder
-WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ARG NEXT_PUBLIC_SITE_URL=https://pray-together.org
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
-RUN corepack enable && yarn build
+RUN bun run build
 
 FROM base AS runner
 WORKDIR /app
@@ -24,4 +23,4 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 USER nextjs
 EXPOSE 3000
-CMD ["node", "server.js"]
+CMD ["bun", "server.js"]
